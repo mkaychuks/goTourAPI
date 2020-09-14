@@ -71,3 +71,23 @@ class Login(Resource):
             }, 200
         
         return {'message': 'Invalid credentials, check username or password'}
+
+
+# init the ContactForm
+contact_args = reqparse.RequestParser()
+contact_args.add_argument('name', type=str, required=True, help='Your name here')
+contact_args.add_argument('email', type=str, required=True, help='Your mail address')
+contact_args.add_argument('message', type=str, required=True, help='Your message here')
+
+class Contact(Resource):
+
+    def post(self):
+        args = contact_args.parse_args()
+
+        # implement smtp mail service here ----------------->
+
+        return {
+            'Name': args['name'],
+            'Email': args['email'],
+            'Message': args['message']
+        }, 201
