@@ -2,8 +2,9 @@ from datetime import timedelta
 
 from flask_restx import reqparse, Resource, marshal_with
 from flask_jwt_extended import create_access_token, create_refresh_token
+from flask_mail import Message
 
-from src import db, bcrypt
+from src import db, bcrypt, mail
 
 from src.models import Users
 from src.schema import (
@@ -75,7 +76,7 @@ class Login(Resource):
 
 # init the ContactForm
 contact_args = reqparse.RequestParser()
-contact_args.add_argument('name', type=str, required=True, help='Your name here')
+contact_args.add_argument('subject', type=str, required=True, help='Your name here')
 contact_args.add_argument('email', type=str, required=True, help='Your mail address')
 contact_args.add_argument('message', type=str, required=True, help='Your message here')
 
@@ -84,10 +85,9 @@ class Contact(Resource):
     def post(self):
         args = contact_args.parse_args()
 
-        # implement smtp mail service here ----------------->
+        msg = Message(subject=args['subject'], sender=args['email'], recipients=[])
+        msg.body = args['message']
 
-        return {
-            'Name': args['name'],
-            'Email': args['email'],
-            'Message': args['message']
-        }, 201
+        mail.send(msg)
+
+        return {'message': 'Success'}
