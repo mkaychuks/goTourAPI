@@ -1,7 +1,8 @@
 from datetime import timedelta
 
+from flask import session
 from flask_restx import reqparse, Resource, marshal_with
-from flask_jwt_extended import create_access_token, create_refresh_token
+from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity, jwt_required
 from flask_mail import Message
 
 from src import db, bcrypt, mail
@@ -72,6 +73,22 @@ class Login(Resource):
             }, 200
         
         return {'message': 'Invalid credentials, check username or password'}
+
+
+# init logout route
+class Logout(Resource):
+
+    @jwt_required
+    def post(self):
+        current_user = get_jwt_identity()
+
+        if current_user in session:
+            session.pop(current_user, None)
+        return {'status':200,
+                'message':
+                    'Successfully Logged out'
+            }
+
 
 
 # init the ContactForm
