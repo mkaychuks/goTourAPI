@@ -1,6 +1,8 @@
 from datetime import timedelta
 
-from flask import session
+from sqlalchemy.exc import IntegrityError
+
+from flask import session, abort
 from flask_restx import reqparse, Resource, marshal_with
 from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity, jwt_required
 from flask_mail import Message
@@ -23,21 +25,25 @@ class Register(Resource):
 
     @marshal_with(register_resource)
     def post(self):
-        args = register_args.parse_args()\
-        
-        # init a password hashing
-        hashed_password = bcrypt.generate_password_hash(args['password']).decode('utf-8')
 
-        new_user = Users(
-            username = args['username'],
-            email = args['email'],
-            password = hashed_password
-        )
+        try:
+            args = register_args.parse_args()
+            
+            # init a password hashing
+            hashed_password = bcrypt.generate_password_hash(args['password']).decode('utf-8')
 
-        db.session.add(new_user)
-        db.session.commit()
+            new_user = Users(
+                username = args['username'],
+                email = args['email'],
+                password = hashed_password
+            )
 
-        return new_user
+            db.session.add(new_user)
+            db.session.commit()
+
+            return new_user
+        except IntegrityError:
+            abort(400, 'User already exists')
 
 
 
@@ -50,6 +56,7 @@ login_args.add_argument('password', type=str, required=True, help='Password here
 class Login(Resource):
 
     def post(self):
+        
         args = login_args.parse_args()
         existing_user = Users.query.filter_by(email=args['email']).first()
 
@@ -72,7 +79,7 @@ class Login(Resource):
                 ]
             }, 200
         
-        return {'message': 'Invalid credentials, check username or password'}
+        abort(401, 'Invalid credentials, check username or password')
 
 
 # init logout route
