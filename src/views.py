@@ -126,20 +126,20 @@ class ForgotPassword(Resource):
 
         try:
             args = forgot_password.parse_args()
-            if not args:
-                raise ValueError
             user = Users.query.filter_by(email=args['email']).first()
             if not user:
                 abort(401, 'Email doesn\'t exists')
             expires = timedelta(hours=24)
             reset_token = create_access_token(str(user.username), expires_delta=expires)
 
-            return send_mail(
+            send_mail(
                 'Reset Your Password', sender='support@reply.com',
                 recipients=[user.email],
-                text_body=render_template('email/reset_password.txt', url=url + reset_token),
-                html_body=render_template('email/reset_password.html', url=url + reset_token)
+                text_body=render_template('reset_password.txt', url=url + reset_token),
+                html_body=render_template('reset_password.html', url=url + reset_token)
             )
+
+            return {'message': 'Check your email for suggestions'}
         
         except InternalServerError:
             abort(500, 'Internal Server Error')
@@ -155,24 +155,23 @@ class ResetPassword(Resource):
         url = request.host_url + 'reset/'
         try:
             args = reset_password.parse_args()
-            if not args:
-                raise ValueError
-            
             user_username = decode_token(args['reset_token'])['identity']
 
-            user = Users.query.get(username=user_username)
+            user = Users.query.filter_by(username=user_username).first()
             hash_password = bcrypt.generate_password_hash(args['password']).decode('utf-8')
 
             user.password = hash_password
-            user.commit()
+            db.session.commit()
 
-            return send_mail(
+            send_mail(
                 'Password Successful',
                 sender='support@mail.com',
                 recipients=[user.email],
                 text_body='Password reset was successful',
                 html_body='<p>Password reset was successful </p>'
             )
+            return {'message': "You can now logged in with your new username"}
+
         except InternalServerError:
             abort(500, 'Internal Server Error')
 
