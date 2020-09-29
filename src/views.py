@@ -1,11 +1,13 @@
 from datetime import timedelta
+from flask.templating import render_template
 
 from sqlalchemy.exc import IntegrityError
 
-from flask import session, abort
+from flask import session, abort, request
 from flask_restx import reqparse, Resource, marshal_with
-from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity, jwt_required
+from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required, decode_token
 from flask_mail import Message
+from werkzeug.exceptions import InternalServerError
 
 from src import db, bcrypt, mail
 
@@ -13,6 +15,7 @@ from src.models import Users
 from src.schema import (
     register_resource
 )
+from src.mail_service import send_mail
 
 
 register_args = reqparse.RequestParser()
@@ -65,16 +68,12 @@ class Login(Resource):
             access_token = create_access_token(
                 identity=str(existing_user.username), expires_delta=expiry, fresh=True
             )
-            refresh_token = create_refresh_token(
-                identity=str(existing_user.username)
-            )
 
             return {
                 'message': f'Logged in as {existing_user.username}',
                 'jwt_credentials':[
                     {
                         'access_token': access_token,
-                        'refresh_token': refresh_token,
                     }
                 ]
             }, 200
@@ -115,3 +114,66 @@ class Contact(Resource):
         mail.send(msg)
 
         return {'message': 'Success'}
+
+
+# forgot password
+forgot_password = reqparse.RequestParser()
+forgot_password.add_argument('email', type=str, required=True, help='email required')
+
+class ForgotPassword(Resource):
+    def post(self):
+        url = request.host_url + 'reset/'
+
+        try:
+            args = forgot_password.parse_args()
+            if not args:
+                raise ValueError
+            user = Users.query.filter_by(email=args['email']).first()
+            if not user:
+                abort(401, 'Email doesn\'t exists')
+            expires = timedelta(hours=24)
+            reset_token = create_access_token(str(user.username), expires_delta=expires)
+
+            return send_mail(
+                'Reset Your Password', sender='support@reply.com',
+                recipients=[user.email],
+                text_body=render_template('email/reset_password.txt', url=url + reset_token),
+                html_body=render_template('email/reset_password.html', url=url + reset_token)
+            )
+        
+        except InternalServerError:
+            abort(500, 'Internal Server Error')
+
+
+# reset password
+reset_password = reqparse.RequestParser()
+reset_password.add_argument('reset_token', type=str, required=True, help='token required')
+reset_password.add_argument('password', type=str, required=True, help='password required')
+
+class ResetPassword(Resource):
+    def post(self):
+        url = request.host_url + 'reset/'
+        try:
+            args = reset_password.parse_args()
+            if not args:
+                raise ValueError
+            
+            user_username = decode_token(args['reset_token'])['identity']
+
+            user = Users.query.get(username=user_username)
+            hash_password = bcrypt.generate_password_hash(args['password']).decode('utf-8')
+
+            user.password = hash_password
+            user.commit()
+
+            return send_mail(
+                'Password Successful',
+                sender='support@mail.com',
+                recipients=[user.email],
+                text_body='Password reset was successful',
+                html_body='<p>Password reset was successful </p>'
+            )
+        except InternalServerError:
+            abort(500, 'Internal Server Error')
+
+
