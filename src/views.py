@@ -170,7 +170,7 @@ class ResetPassword(Resource):
                 text_body='Password reset was successful',
                 html_body='<p>Password reset was successful </p>'
             )
-            return {'message': "You can now logged in with your new username"}
+            return {'message': "You can now log in with your new password"}
 
         except InternalServerError:
             abort(500, 'Internal Server Error')
