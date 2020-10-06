@@ -11,7 +11,7 @@ from werkzeug.exceptions import InternalServerError
 
 from src import db, bcrypt, mail
 
-from src.models import Users
+from src.models import Users, Newsletter
 from src.schema import (
     register_resource
 )
@@ -147,8 +147,8 @@ class ForgotPassword(Resource):
 
 # reset password
 reset_password = reqparse.RequestParser()
-reset_password.add_argument('reset_token', type=str, required=True, help='token required')
-reset_password.add_argument('password', type=str, required=True, help='password required')
+reset_password.add_argument('reset_token', type=str, required=True, help='{reset token required}')
+reset_password.add_argument('password', type=str, required=True, help='{new password required}')
 
 class ResetPassword(Resource):
     def post(self):
@@ -176,3 +176,31 @@ class ResetPassword(Resource):
             abort(500, 'Internal Server Error')
 
 
+# creating the subscribing to the newsletter args
+newsletter_args = reqparse.RequestParser()
+newsletter_args.add_argument('name', type=str, help='{Your name}', required=True)
+newsletter_args.add_argument('email', type=str, help='{Your email address}', required=True)
+
+
+class Subscribe(Resource):
+    
+    def post(self):
+        args = newsletter_args.parse_args()
+        email = Newsletter.query.filter_by(email=args['email']).first()
+
+        try:
+
+            if email:
+                abort(401, "This email is not available")
+
+            subscriber = Newsletter(
+                name=args['name'],
+                email=args['email']
+            )
+
+            db.session.add(subscriber)
+            db.session.commit()
+
+            return {'message': 'You have successfully subscribed to our newsletter'}
+        except InternalServerError:
+            abort(500, 'Something went wrong internally')

@@ -9,7 +9,7 @@ class Users(db.Model):
     username = db.Column(db.String, nullable=False, unique=True)
     email = db.Column(db.String, nullable=False, unique=True)
     password = db.Column(db.String, nullable=False)
-    bookings = db.relationship("Booking", backref='booking', lazy=True)
+    bookings = db.relationship('Bookings', backref='tours', lazy=True)
 
     def __repr__(self):
         return f'{self.username}'
@@ -53,3 +53,14 @@ class Bookings(db.Model):
     
     def __repr__(self) -> str:
         return f'{self.booked_by} booked a tour {self.time_of_year} tour'
+
+
+
+# Creating a DB to hold the subscribers to the newsletter
+class Newsletter(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String, nullable=False)
+    email = db.Column(db.String, nullable=False, unique=True)
+
+    def __repr__(self) -> str:
+        return f'{self.name} subscribed to the newsletter'
