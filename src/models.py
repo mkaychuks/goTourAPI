@@ -1,4 +1,5 @@
 import enum
+from datetime import date
 
 from src import db
 
@@ -64,3 +65,14 @@ class Newsletter(db.Model):
 
     def __repr__(self) -> str:
         return f'{self.name} subscribed to the newsletter'
+
+
+# creating a blog model to hold the happenings of the tour group
+class Blog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    body = db.Column(db.Text, nullable=False)
+    date_created = db.Column(db.Date, default=date.today)
+
+    def __repr__(self) -> str:
+        return f'{self.title} added today being {self.date_created}'
