@@ -11,9 +11,9 @@ from werkzeug.exceptions import InternalServerError
 
 from src import db, bcrypt, mail
 
-from src.models import Users, Newsletter
+from src.models import Blog, Users, Newsletter
 from src.schema import (
-    register_resource
+    register_resource, blog_post
 )
 from src.mail_service import send_mail
 
@@ -204,3 +204,30 @@ class Subscribe(Resource):
             return {'message': 'You have successfully subscribed to our newsletter'}
         except InternalServerError:
             abort(500, 'Something went wrong internally')
+
+
+
+# creating a blog post view logic
+blog_args = reqparse.RequestParser()
+blog_args.add_argument('title', type=str, required=True, help={'Title of blog post'})
+blog_args.add_argument('body', type=str, required=True, help={'Body of blog post'})
+blog_args.add_argument('author', type=str, required=True, help={'Author of blog post'})
+
+
+class BlogPost(Resource):
+
+    @jwt_required
+    @marshal_with(blog_post)
+    def post(self):
+        args = blog_args.parse_args()
+
+        author = get_jwt_identity()
+        new_post = Blog(
+            title=args['title'], body=args['body'],
+            author=author
+        )
+
+        db.session.add(new_post)
+        db.session.commit()
+
+        return new_post

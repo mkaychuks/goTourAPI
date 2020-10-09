@@ -7,3 +7,10 @@ register_resource = {
     'email': fields.String(default='admin@admin.com'),
     'password': fields.String
 }
+
+blog_post = {
+    'id': fields.Integer,
+    'title': fields.String,
+    'body': fields.String,
+    'date_created': fields.String
+}

@@ -11,6 +11,7 @@ class Users(db.Model):
     email = db.Column(db.String, nullable=False, unique=True)
     password = db.Column(db.String, nullable=False)
     bookings = db.relationship('Bookings', backref='tours', lazy=True)
+    posts_written = db.relationship('Blog', backref='blog', lazy=True)
 
     def __repr__(self):
         return f'{self.username}'
@@ -72,7 +73,8 @@ class Blog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
     body = db.Column(db.Text, nullable=False)
-    date_created = db.Column(db.Date, default=date.today)
+    date_created = db.Column(db.Date, default=date.today, nullable=False)
+    author = db.Column(db.String, db.ForeignKey('users.username'), nullable=False)
 
     def __repr__(self) -> str:
         return f'{self.title} added today being {self.date_created}'
