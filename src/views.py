@@ -11,9 +11,9 @@ from werkzeug.exceptions import InternalServerError
 
 from src import db, bcrypt, mail
 
-from src.models import Blog, Users, Newsletter
+from src.models import Blog, Users, Newsletter, Bookings
 from src.schema import (
-    register_resource, blog_post
+    register_resource, blog_post, bookings
 )
 from src.mail_service import send_mail
 
@@ -231,3 +231,41 @@ class BlogPost(Resource):
         db.session.commit()
 
         return new_post
+
+
+# bookings strategy
+bookings_args = reqparse.RequestParser()
+bookings_args.add_argument("type_of_travel", type=str, required=True, help={"Choose from 'holidays', 'family_vacation', 'adventure'..."})
+bookings_args.add_argument("time_of_year", type=str, required=True, help={"Choose from 'winter', 'summer'..."})
+bookings_args.add_argument("ticket", type=str, required=True, help={"Choose from 'economy', 'first_class'..."})
+bookings_args.add_argument("location_of_choice", type=str, required=True, help={"Choose from 'mexico', 'ghana', 'santorini', 'seychelles..."})
+
+
+# init
+class TicketBook(Resource):
+
+    @marshal_with(bookings)
+    def post(self):
+        args = bookings_args.parse_args()
+
+        if args['time_of_year'] not in ['winter', 'summer']:
+            abort(500, "we don't travel by this time of the year")
+        if args['type_of_travel'] not in ['holidays', 'family_vacation', 'adventure']:
+            abort(401, 'We can\'t offer this service')
+        if args['ticket'] not in ['economy', 'first_class']:
+            abort(401, 'Alaye, take time')
+        if args['location_of_choice'] not in ['mexico', 'ghana', 'santorini', 'seychelles']:
+            abort(401, 'Alaye, soro soke')
+        
+        book = Bookings(
+            type_of_travel = args['type_of_travel'],
+            time_of_year = args['time_of_year'],
+            ticket = args['ticket'],
+            location_of_choice = args['location_of_choice'],
+            booked_by = 'sachufusi'
+        )
+
+        db.session.add(book)
+        db.session.commit()
+
+        return book

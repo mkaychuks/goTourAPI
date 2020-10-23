@@ -14,3 +14,12 @@ blog_post = {
     'body': fields.String,
     'date_created': fields.String
 }
+
+bookings = {
+    'id' : fields.Integer,
+    "type_of_travel" : fields.String,
+    "time_of_year" : fields.String,
+    "ticket" : fields.String,
+    "location_of_choice": fields.String,
+    "booked_by" : fields.String
+}
